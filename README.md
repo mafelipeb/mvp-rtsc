@@ -153,6 +153,35 @@ mvp-rtsc/
    vercel env add NEXTAUTH_SECRET production
    ```
 
+### Option 3: Using Vercel Secrets (Advanced)
+
+For enhanced security, you can use Vercel Secrets instead of environment variables:
+
+1. **Create secrets via CLI**:
+   ```bash
+   vercel secrets add claude-api-key "your_actual_api_key"
+   vercel secrets add recall-api-key "your_actual_api_key"
+   vercel secrets add recall-webhook-secret "your_actual_secret"
+   vercel secrets add nextauth-secret "your_actual_secret"
+   ```
+
+2. **Update vercel.json** to reference secrets:
+   ```json
+   "env": {
+     "CLAUDE_API_KEY": "@claude-api-key",
+     "RECALL_API_KEY": "@recall-api-key",
+     "RECALL_WEBHOOK_SECRET": "@recall-webhook-secret",
+     "NEXTAUTH_SECRET": "@nextauth-secret"
+   }
+   ```
+
+3. **Redeploy**:
+   ```bash
+   vercel --prod
+   ```
+
+**Note**: The default configuration uses environment variables (simpler). Only use secrets if you need the extra security layer for sensitive production deployments.
+
 ## Configuring Recall.ai
 
 Once deployed, configure Recall.ai to send webhooks to your application:
@@ -259,6 +288,22 @@ theme: {
 ```
 
 ## Troubleshooting
+
+### Environment Variable Errors
+
+**Error**: `Environment Variable "CLAUDE_API_KEY" references Secret "claude-api-key", which does not exist`
+
+This error occurs when `vercel.json` references Vercel Secrets that haven't been created. Solutions:
+
+1. **Use environment variables (recommended)**:
+   - Remove the `"env"` section from `vercel.json` (default configuration)
+   - Set environment variables via Vercel Dashboard or CLI
+   - Redeploy your application
+
+2. **Create Vercel Secrets**:
+   - Run: `vercel secrets add claude-api-key "your_actual_key"`
+   - Repeat for all required secrets
+   - Keep the `"env"` section in `vercel.json` that references them
 
 ### Webhooks Not Received
 
