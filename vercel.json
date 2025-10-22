@@ -6,12 +6,6 @@
       "use": "@vercel/next"
     }
   ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    }
-  ],
   "env": {
     "CLAUDE_API_KEY": "@claude-api-key",
     "RECALL_API_KEY": "@recall-api-key",
