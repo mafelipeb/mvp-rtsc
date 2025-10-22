@@ -19,7 +19,6 @@ An AI-powered real-time sales coaching system for Microsoft Teams calls, integra
 - **Deployment**: Vercel
 - **API Routes**: Next.js API routes as serverless functions
 
-
 ## Project Structure
 
 ```
