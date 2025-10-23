@@ -41,11 +41,6 @@ export default async function handler(req, res) {
       meeting_url: meeting_url,
       bot_name: bot_name || 'Sales Coach AI',
 
-      // Real-time transcription with low latency
-      transcription_options: {
-        provider: 'meeting_captions' // Use meeting's native captions for lowest latency
-      },
-
       // Recording configuration for streaming
       recording_config: {
         transcript: {
