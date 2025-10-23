@@ -1,5 +1,33 @@
 # Deployment Guide
 
+## Quick Start - Using the System
+
+### Creating a Bot for Your Teams Meeting
+
+1. **Go to your deployed app:** https://mvp-rtsc.vercel.app
+
+2. **Get your Teams meeting URL:**
+   - In Microsoft Teams, click "Meeting Options" or copy the meeting link
+   - URL format: `https://teams.microsoft.com/l/meetup-join/...`
+
+3. **Create the bot:**
+   - Paste the Teams URL in the "Start New Coaching Session" section
+   - Click "Create Bot & Start Coaching"
+   - Wait for success message with Meeting ID
+
+4. **View real-time coaching:**
+   - Automatically redirected to dashboard
+   - Or manually go to: `https://mvp-rtsc.vercel.app/dashboard/[meeting-id]`
+   - Keep dashboard open on second screen during call
+
+5. **During the meeting:**
+   - Bot joins and listens silently
+   - Real-time transcription with low latency (2-5 seconds)
+   - Coaching recommendations appear every 5 seconds
+   - Glance at dashboard for AI-powered tips
+
+---
+
 ## Vercel Deployment
 
 ### Quick Start
@@ -105,9 +133,91 @@ Don't use the `@secret-name` syntax in `vercel.json`. Instead, add environment v
 
 5. Open http://localhost:3000
 
+## API Endpoints
+
+### Create Bot
+**POST** `/api/bot/create`
+
+Create a Recall.ai bot to join a Microsoft Teams meeting.
+
+**Request:**
+```json
+{
+  "meeting_url": "https://teams.microsoft.com/l/meetup-join/...",
+  "bot_name": "Sales Coach AI"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "bot_id": "abc123...",
+    "meeting_id": "abc123...",
+    "status": "created",
+    "dashboard_url": "https://mvp-rtsc.vercel.app/dashboard/abc123"
+  }
+}
+```
+
+### Webhook Endpoint
+**POST** `/api/webhook/recall`
+
+Receives real-time events from Recall.ai during meetings.
+
+**Events handled:**
+- `bot.status_change` - Bot joined/left meeting
+- `transcript.partial` - Real-time partial transcripts (very low latency)
+- `transcript.complete` - Complete transcript segments
+- `call.ended` - Meeting finished
+
+### Get Coaching Data
+**GET** `/api/coaching/[meetingId]?latest=true`
+
+Retrieve latest coaching recommendations for a meeting.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "meetingId": "abc123",
+    "coaching": [...],
+    "transcripts": [...],
+    "lastUpdate": "2025-10-23T18:00:00Z"
+  }
+}
+```
+
+---
+
+## Architecture Overview
+
+```
+Microsoft Teams Meeting (with Recall.ai bot)
+    ↓ (real-time audio stream)
+Recall.ai Service
+    ↓ (webhook POST every 2-5 seconds)
+Your App /api/webhook/recall
+    ↓ (Claude AI analysis)
+Coaching Recommendations Stored
+    ↑ (dashboard polls every 5 seconds)
+Sales Rep's Dashboard
+```
+
+**Key Features:**
+- **Low-latency streaming:** `prioritize_low_latency` mode
+- **Real-time webhooks:** Events pushed as they happen
+- **Frontend polling:** Dashboard updates every 5 seconds
+- **Async processing:** Claude AI analysis doesn't block webhooks
+
+---
+
 ## Support
 
 For issues or questions:
 - Check Vercel deployment logs
 - Review this deployment guide
 - Check `.env.example` for reference
+- Test bot creation: https://mvp-rtsc.vercel.app
