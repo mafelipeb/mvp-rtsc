@@ -63,59 +63,88 @@ export default async function handler(req, res) {
     // Adjust these fields based on actual Recall.ai webhook format
     const {
       meeting_id: meetingId,
+      bot_id: botId,
       transcript,
       speaker,
       event_type: eventType,
+      event,
+      data,
       metadata,
     } = payload;
 
-    if (!meetingId) {
-      return res.status(400).json({ error: 'Missing meeting_id' });
+    // Use bot_id as meeting_id if meeting_id not present
+    const actualMeetingId = meetingId || botId || data?.bot_id;
+
+    if (!actualMeetingId) {
+      console.error('Missing meeting_id/bot_id in webhook payload:', payload);
+      return res.status(400).json({ error: 'Missing meeting_id or bot_id' });
     }
 
-    console.log(`Received webhook for meeting ${meetingId}, event: ${eventType}`);
+    const eventName = eventType || event;
+    console.log(`Received webhook for meeting ${actualMeetingId}, event: ${eventName}`);
 
-    // Store the transcript segment
-    if (transcript && eventType === 'transcript.segment') {
-      storage.addTranscript(meetingId, {
-        text: transcript,
-        speaker: speaker || 'Unknown',
-        metadata,
-      });
+    // Handle real-time transcript events (streaming with low latency)
+    // transcript.partial = Real-time partial transcripts (very low latency)
+    // transcript.complete = Complete transcript segments (finalized)
+    if (eventName === 'transcript.partial' || eventName === 'transcript.complete' || eventName === 'transcript.segment') {
+      const transcriptText = transcript || data?.transcript?.text || data?.text;
+      const transcriptSpeaker = speaker || data?.speaker?.name || data?.speaker || 'Unknown';
 
-      // Get recent transcripts for context (last 5 segments)
-      const recentTranscripts = storage.getRecentTranscripts(meetingId, 5);
+      if (transcriptText) {
+        // Only store complete transcripts (not partials) to avoid duplicates
+        if (eventName === 'transcript.complete' || eventName === 'transcript.segment') {
+          storage.addTranscript(actualMeetingId, {
+            text: transcriptText,
+            speaker: transcriptSpeaker,
+            metadata,
+            timestamp: new Date().toISOString(),
+          });
+        }
 
-      // Generate coaching if we have enough context (at least 3 segments)
-      if (recentTranscripts.length >= 3) {
-        const call = storage.getCall(meetingId);
+        // Get recent transcripts for context (last 5 segments)
+        const recentTranscripts = storage.getRecentTranscripts(actualMeetingId, 5);
 
-        // Generate coaching asynchronously
-        generateSalesCoaching(recentTranscripts, {
-          meetingId,
-          participants: call.participants,
-          duration: metadata?.duration,
-        }).then((coaching) => {
-          if (coaching.success) {
-            storage.addCoaching(meetingId, coaching.data);
-            console.log(`Generated coaching for meeting ${meetingId}`);
-          } else {
-            console.error(`Failed to generate coaching: ${coaching.error}`);
-          }
-        }).catch((error) => {
-          console.error('Error in coaching generation:', error);
-        });
+        // Generate coaching if we have enough context (at least 3 segments)
+        if (recentTranscripts.length >= 3) {
+          const call = storage.getCall(actualMeetingId);
+
+          // Generate coaching asynchronously
+          generateSalesCoaching(recentTranscripts, {
+            meetingId: actualMeetingId,
+            participants: call?.participants || [],
+            duration: metadata?.duration,
+          }).then((coaching) => {
+            if (coaching.success) {
+              storage.addCoaching(actualMeetingId, coaching.data);
+              console.log(`Generated coaching for meeting ${actualMeetingId}`);
+            } else {
+              console.error(`Failed to generate coaching: ${coaching.error}`);
+            }
+          }).catch((error) => {
+            console.error('Error in coaching generation:', error);
+          });
+        }
+      }
+    }
+
+    // Handle bot status changes
+    if (eventName === 'bot.status_change') {
+      const status = data?.status?.code || data?.code;
+      console.log(`Bot status change for ${actualMeetingId}: ${status}`);
+
+      if (status === 'in_call_not_recording' || status === 'in_call_recording') {
+        storage.getOrCreateCall(actualMeetingId);
       }
     }
 
     // Handle other event types
-    if (eventType === 'call.started') {
-      console.log(`Call started: ${meetingId}`);
-      storage.getOrCreateCall(meetingId);
+    if (eventName === 'call.started' || eventName === 'bot.joined_call') {
+      console.log(`Call started: ${actualMeetingId}`);
+      storage.getOrCreateCall(actualMeetingId);
     }
 
-    if (eventType === 'call.ended') {
-      console.log(`Call ended: ${meetingId}`);
+    if (eventName === 'call.ended' || eventName === 'bot.left_call') {
+      console.log(`Call ended: ${actualMeetingId}`);
       // You might want to trigger a final comprehensive analysis here
     }
 
@@ -123,7 +152,8 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       message: 'Webhook processed successfully',
-      meetingId,
+      meetingId: actualMeetingId,
+      event: eventName,
     });
   } catch (error) {
     console.error('Error processing webhook:', error);
