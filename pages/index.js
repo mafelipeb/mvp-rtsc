@@ -130,7 +130,7 @@ export default function Home() {
                     value={meetingUrl}
                     onChange={(e) => setMeetingUrl(e.target.value)}
                     placeholder="https://teams.microsoft.com/l/meetup-join/..."
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 bg-white placeholder-gray-400"
                     required
                     disabled={loading}
                   />
@@ -184,7 +184,7 @@ export default function Home() {
                     value={meetingId}
                     onChange={(e) => setMeetingId(e.target.value)}
                     placeholder="Enter meeting ID..."
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 bg-white placeholder-gray-400"
                     required
                   />
                 </div>
