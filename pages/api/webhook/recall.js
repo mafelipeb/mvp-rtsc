@@ -50,8 +50,10 @@ export default async function handler(req, res) {
       payload = JSON.parse(rawBody);
     }
 
+    // Log the full payload to understand Recall.ai's webhook structure
+    console.log('📥 Received webhook payload:', JSON.stringify(payload, null, 2));
+
     // Extract relevant data from Recall.ai webhook
-    // Adjust these fields based on actual Recall.ai webhook format
     const {
       meeting_id: meetingId,
       bot_id: botId,
@@ -61,18 +63,33 @@ export default async function handler(req, res) {
       event,
       data,
       metadata,
+      type,
     } = payload;
 
-    // Use bot_id as meeting_id if meeting_id not present
-    const actualMeetingId = meetingId || botId || data?.bot_id;
+    // Try multiple possible locations for bot_id/meeting_id
+    const actualMeetingId =
+      meetingId ||
+      botId ||
+      data?.bot_id ||
+      data?.id ||
+      data?.meeting_id ||
+      data?.bot?.id ||
+      payload.id;
 
     if (!actualMeetingId) {
-      console.error('Missing meeting_id/bot_id in webhook payload:', payload);
-      return res.status(400).json({ error: 'Missing meeting_id or bot_id' });
+      console.error('❌ Missing meeting_id/bot_id in webhook payload');
+      console.error('Available fields:', Object.keys(payload));
+      console.error('Data fields:', data ? Object.keys(data) : 'no data object');
+      return res.status(400).json({
+        error: 'Missing meeting_id or bot_id',
+        available_fields: Object.keys(payload),
+        data_fields: data ? Object.keys(data) : null
+      });
     }
 
-    const eventName = eventType || event;
-    console.log(`Received webhook for meeting ${actualMeetingId}, event: ${eventName}`);
+    // Event name can be in type, event_type, or event fields
+    const eventName = type || eventType || event;
+    console.log(`✅ Received webhook for meeting ${actualMeetingId}, event: ${eventName}`);
 
     // Handle real-time transcript events (streaming with low latency)
     // transcript.partial = Real-time partial transcripts (very low latency)
