@@ -1,30 +1,16 @@
-import crypto from 'crypto';
+import { Webhook } from 'svix';
 import storage from '@/lib/storage';
 import { generateSalesCoaching } from '@/lib/claude';
 
 /**
- * Verify Recall.ai webhook signature
- * @param {string} payload - Raw request body
- * @param {string} signature - Signature from request headers
- * @param {string} secret - Webhook secret
- * @returns {boolean} Whether signature is valid
+ * Helper to read raw body from request
  */
-function verifyWebhookSignature(payload, signature, secret) {
-  if (!secret || !signature) return false;
-
-  try {
-    const hmac = crypto.createHmac('sha256', secret);
-    hmac.update(payload);
-    const calculatedSignature = hmac.digest('hex');
-
-    return crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(calculatedSignature)
-    );
-  } catch (error) {
-    console.error('Error verifying webhook signature:', error);
-    return false;
+async function getRawBody(req) {
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
   }
+  return Buffer.concat(chunks).toString('utf8');
 }
 
 /**
@@ -39,25 +25,30 @@ export default async function handler(req, res) {
 
   try {
     // Get the raw body for signature verification
-    const rawBody = JSON.stringify(req.body);
+    const rawBody = await getRawBody(req);
 
-    // Verify webhook signature if secret is configured
+    // Verify webhook signature using Svix if secret is configured
+    let payload;
     if (process.env.RECALL_WEBHOOK_SECRET) {
-      const signature = req.headers['x-recall-signature'];
-      const isValid = verifyWebhookSignature(
-        rawBody,
-        signature,
-        process.env.RECALL_WEBHOOK_SECRET
-      );
+      try {
+        const wh = new Webhook(process.env.RECALL_WEBHOOK_SECRET);
 
-      if (!isValid) {
-        console.error('Invalid webhook signature');
+        // Verify using Svix headers
+        payload = wh.verify(rawBody, {
+          'svix-id': req.headers['svix-id'],
+          'svix-timestamp': req.headers['svix-timestamp'],
+          'svix-signature': req.headers['svix-signature'],
+        });
+
+        console.log('✅ Webhook signature verified successfully');
+      } catch (err) {
+        console.error('❌ Invalid webhook signature:', err.message);
         return res.status(401).json({ error: 'Invalid signature' });
       }
+    } else {
+      // If no secret is configured, just parse the body (for development)
+      payload = JSON.parse(rawBody);
     }
-
-    // Parse the webhook payload
-    const payload = req.body;
 
     // Extract relevant data from Recall.ai webhook
     // Adjust these fields based on actual Recall.ai webhook format
@@ -174,11 +165,9 @@ export default async function handler(req, res) {
   }
 }
 
-// Configure Next.js to not parse the body (we need raw body for signature verification)
+// Configure Next.js to not parse the body (we need raw body for Svix signature verification)
 export const config = {
   api: {
-    bodyParser: {
-      sizeLimit: '1mb',
-    },
+    bodyParser: false,
   },
 };
