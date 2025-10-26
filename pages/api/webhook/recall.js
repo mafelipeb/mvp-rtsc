@@ -132,8 +132,20 @@ export default async function handler(req, res) {
       const status = data?.status?.code || data?.code;
       console.log(`Bot status change for ${actualMeetingId}: ${status}`);
 
-      if (status === 'in_call_not_recording' || status === 'in_call_recording') {
+      // Bot is now in the call - mark as active
+      if (status === 'bot.in_call_not_recording' ||
+          status === 'bot.in_call_recording' ||
+          status === 'bot.recording_permission_allowed') {
+        console.log(`Bot activated for meeting ${actualMeetingId}`);
         storage.activateCall(actualMeetingId);
+      }
+
+      // Bot left or call ended - mark as ended
+      if (status === 'bot.call_ended' ||
+          status === 'bot.done' ||
+          status === 'bot.fatal') {
+        console.log(`Bot ended for meeting ${actualMeetingId}`);
+        storage.endCall(actualMeetingId);
       }
     }
 
