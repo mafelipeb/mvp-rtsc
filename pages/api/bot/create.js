@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     });
   }
 
-  // Validate RECALL_API_KEY is configured
+  // Validate API keys are configured
   if (!process.env.RECALL_API_KEY) {
     return res.status(500).json({
       error: 'Server configuration error',
@@ -32,23 +32,37 @@ export default async function handler(req, res) {
     });
   }
 
+  if (!process.env.DEEPGRAM_API_KEY) {
+    return res.status(500).json({
+      error: 'Server configuration error',
+      message: 'DEEPGRAM_API_KEY not configured'
+    });
+  }
+
   try {
     // Construct webhook URL for this deployment
     const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/recall`;
 
-    // Prepare bot configuration with low-latency streaming
+    // Prepare bot configuration with Deepgram transcription
     const botConfig = {
       meeting_url: meeting_url,
-      bot_name: bot_name || 'Sales Coach AI',
+      bot_name: bot_name || 'NoteTaker.ai',
 
-      // Recording configuration for streaming
+      // Real-time transcription with low latency
+      transcription_options: {
+        provider: 'meeting_captions' // Use meeting's native captions for lowest latency
+      },
+
+      // Recording configuration with Deepgram
       recording_config: {
         transcript: {
           provider: {
-            // Use Recall.ai's streaming for real-time transcripts
-            recallai_streaming: {
-              mode: 'prioritize_low_latency',
-              language_code: 'en'
+            // Use Deepgram for high-quality real-time transcripts
+            deepgram: {
+              api_key: process.env.DEEPGRAM_API_KEY,
+              model: 'nova-2',
+              language: 'en',
+              tier: 'nova'
             }
           }
         }
