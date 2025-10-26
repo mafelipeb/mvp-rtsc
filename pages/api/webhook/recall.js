@@ -145,6 +145,7 @@ export default async function handler(req, res) {
 
     if (eventName === 'call.ended' || eventName === 'bot.left_call') {
       console.log(`Call ended: ${actualMeetingId}`);
+      storage.endCall(actualMeetingId);
       // You might want to trigger a final comprehensive analysis here
     }
 

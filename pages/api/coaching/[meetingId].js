@@ -25,6 +25,7 @@ export default async function handler(req, res) {
       // Return only the latest coaching recommendations
       const latestCoaching = storage.getLatestCoaching(meetingId, 5);
       const recentTranscripts = storage.getRecentTranscripts(meetingId, 10);
+      const callStatus = storage.getCallStatus(meetingId);
 
       return res.status(200).json({
         success: true,
@@ -32,6 +33,7 @@ export default async function handler(req, res) {
           meetingId,
           coaching: latestCoaching,
           transcripts: recentTranscripts,
+          status: callStatus || 'unknown',
           lastUpdate: new Date().toISOString(),
         },
       });
