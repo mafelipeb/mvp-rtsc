@@ -127,29 +127,27 @@ export default async function handler(req, res) {
       }
     }
 
-    // Handle bot status changes
-    if (eventName === 'bot.status_change') {
-      const status = data?.status?.code || data?.code;
-      console.log(`Bot status change for ${actualMeetingId}: ${status}`);
+    // Handle bot status events directly
+    // The event type IS the status (e.g., "bot.in_call_recording")
+    console.log(`Event for ${actualMeetingId}: ${eventName}`);
 
-      // Bot is now in the call - mark as active
-      if (status === 'bot.in_call_not_recording' ||
-          status === 'bot.in_call_recording' ||
-          status === 'bot.recording_permission_allowed') {
-        console.log(`Bot activated for meeting ${actualMeetingId}`);
-        storage.activateCall(actualMeetingId);
-      }
-
-      // Bot left or call ended - mark as ended
-      if (status === 'bot.call_ended' ||
-          status === 'bot.done' ||
-          status === 'bot.fatal') {
-        console.log(`Bot ended for meeting ${actualMeetingId}`);
-        storage.endCall(actualMeetingId);
-      }
+    // Bot is now in the call - mark as active
+    if (eventName === 'bot.in_call_not_recording' ||
+        eventName === 'bot.in_call_recording' ||
+        eventName === 'bot.recording_permission_allowed') {
+      console.log(`✅ Bot activated for meeting ${actualMeetingId}`);
+      storage.activateCall(actualMeetingId);
     }
 
-    // Handle other event types
+    // Bot left or call ended - mark as ended
+    if (eventName === 'bot.call_ended' ||
+        eventName === 'bot.done' ||
+        eventName === 'bot.fatal') {
+      console.log(`🛑 Bot ended for meeting ${actualMeetingId}`);
+      storage.endCall(actualMeetingId);
+    }
+
+    // Legacy support for other event names
     if (eventName === 'call.started' || eventName === 'bot.joined_call') {
       console.log(`Call started: ${actualMeetingId}`);
       storage.activateCall(actualMeetingId);
@@ -158,7 +156,6 @@ export default async function handler(req, res) {
     if (eventName === 'call.ended' || eventName === 'bot.left_call') {
       console.log(`Call ended: ${actualMeetingId}`);
       storage.endCall(actualMeetingId);
-      // You might want to trigger a final comprehensive analysis here
     }
 
     // Return success response
