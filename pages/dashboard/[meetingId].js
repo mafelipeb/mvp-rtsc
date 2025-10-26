@@ -11,6 +11,7 @@ export default function Dashboard() {
   const [transcripts, setTranscripts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [meetingStatus, setMeetingStatus] = useState('unknown');
 
   // Fetch coaching data
   useEffect(() => {
@@ -24,6 +25,7 @@ export default function Dashboard() {
         if (result.success) {
           setCoachingData(result.data.coaching);
           setTranscripts(result.data.transcripts);
+          setMeetingStatus(result.data.status || 'unknown');
           setError(null);
         } else {
           setError(result.error || 'Failed to fetch data');
@@ -38,10 +40,12 @@ export default function Dashboard() {
     fetchData();
 
     // Poll for updates every 5 seconds
-    const interval = setInterval(fetchData, 5000);
+    // If meeting ended, slow down polling to every 30 seconds
+    const pollInterval = meetingStatus === 'ended' ? 30000 : 5000;
+    const interval = setInterval(fetchData, pollInterval);
 
     return () => clearInterval(interval);
-  }, [meetingId]);
+  }, [meetingId, meetingStatus]);
 
   if (loading) {
     return (
@@ -76,14 +80,43 @@ export default function Dashboard() {
                 <p className="text-sm text-gray-600">Meeting ID: {meetingId}</p>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-sm text-gray-600">Live</span>
+                {meetingStatus === 'ended' ? (
+                  <>
+                    <div className="h-2 w-2 bg-gray-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">Meeting Ended</span>
+                  </>
+                ) : meetingStatus === 'active' ? (
+                  <>
+                    <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm text-gray-600">Live</span>
+                  </>
+                ) : (
+                  <>
+                    <div className="h-2 w-2 bg-yellow-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">Waiting...</span>
+                  </>
+                )}
               </div>
             </div>
           </div>
         </header>
 
         <main className="container mx-auto px-4 py-8">
+          {/* Meeting Ended Banner */}
+          {meetingStatus === 'ended' && (
+            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <div className="text-2xl">✅</div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-blue-900 mb-1">Meeting Has Ended</h3>
+                  <p className="text-sm text-blue-800">
+                    The bot has left the meeting. You can still review all transcripts and coaching recommendations below.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Coaching Recommendations */}
             <div className="lg:col-span-2 space-y-6">
