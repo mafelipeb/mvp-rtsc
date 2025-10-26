@@ -32,12 +32,6 @@ export default async function handler(req, res) {
     });
   }
 
-  if (!process.env.DEEPGRAM_API_KEY) {
-    return res.status(500).json({
-      error: 'Server configuration error',
-      message: 'DEEPGRAM_API_KEY not configured'
-    });
-  }
 
   try {
     // Construct webhook URL for this deployment
@@ -48,23 +42,11 @@ export default async function handler(req, res) {
       meeting_url: meeting_url,
       bot_name: bot_name || 'NoteTaker.ai',
 
-      // Real-time transcription with low latency
+      // Deepgram transcription (API key must be configured in Recall.ai dashboard)
       transcription_options: {
-        provider: 'meeting_captions' // Use meeting's native captions for lowest latency
-      },
-
-      // Recording configuration with Deepgram
-      recording_config: {
-        transcript: {
-          provider: {
-            // Use Deepgram for high-quality real-time transcripts
-            deepgram: {
-              api_key: process.env.DEEPGRAM_API_KEY,
-              model: 'nova-2',
-              language: 'en',
-              tier: 'nova'
-            }
-          }
+        provider: 'deepgram',
+        deepgram: {
+          language: 'en'
         }
       },
 
