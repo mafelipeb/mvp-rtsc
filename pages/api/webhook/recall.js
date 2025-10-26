@@ -133,14 +133,14 @@ export default async function handler(req, res) {
       console.log(`Bot status change for ${actualMeetingId}: ${status}`);
 
       if (status === 'in_call_not_recording' || status === 'in_call_recording') {
-        storage.getOrCreateCall(actualMeetingId);
+        storage.activateCall(actualMeetingId);
       }
     }
 
     // Handle other event types
     if (eventName === 'call.started' || eventName === 'bot.joined_call') {
       console.log(`Call started: ${actualMeetingId}`);
-      storage.getOrCreateCall(actualMeetingId);
+      storage.activateCall(actualMeetingId);
     }
 
     if (eventName === 'call.ended' || eventName === 'bot.left_call') {
