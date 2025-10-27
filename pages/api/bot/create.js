@@ -42,9 +42,9 @@ export default async function handler(req, res) {
       meeting_url: meeting_url,
       bot_name: bot_name || 'NoteTaker.ai',
 
-      // Real-time transcription with Deepgram streaming
+      // Real-time transcription with Deepgram
       transcription_options: {
-        provider: 'deepgram_streaming',
+        provider: 'deepgram',
         deepgram: {
           model: 'nova-2',
           language: 'multi'
