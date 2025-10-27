@@ -31,7 +31,7 @@ export default function Home() {
         },
         body: JSON.stringify({
           meeting_url: meetingUrl,
-          bot_name: 'Sales Coach AI',
+          bot_name: 'NoteTaker.ai',
         }),
       });
 
