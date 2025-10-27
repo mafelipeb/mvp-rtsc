@@ -37,22 +37,11 @@ export default async function handler(req, res) {
     // Construct webhook URL for this deployment
     const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/recall`;
 
-    // Prepare bot configuration with Deepgram streaming transcription
+    // Prepare bot configuration
+    // Transcription provider is configured in Recall.ai dashboard, not via API
     const botConfig = {
       meeting_url: meeting_url,
       bot_name: bot_name || 'NoteTaker.ai',
-
-      // Recording configuration with Deepgram for real-time transcription
-      recording_config: {
-        transcript: {
-          provider: {
-            deepgram: {
-              model: 'nova-2',        // Use Nova-2 for fast, accurate transcription
-              language: 'multi'        // Multilingual support
-            }
-          }
-        }
-      },
 
       // Webhook configuration
       webhook: {
