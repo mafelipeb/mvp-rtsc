@@ -95,8 +95,25 @@ export default async function handler(req, res) {
     // transcript.partial = Real-time partial transcripts (very low latency)
     // transcript.complete = Complete transcript segments (finalized)
     if (eventName === 'transcript.partial' || eventName === 'transcript.complete' || eventName === 'transcript.segment') {
-      const transcriptText = transcript || data?.transcript?.text || data?.text;
-      const transcriptSpeaker = speaker || data?.speaker?.name || data?.speaker || 'Unknown';
+      console.log(`📝 Processing transcript event: ${eventName}`);
+      console.log(`📝 Raw data object:`, JSON.stringify(data, null, 2));
+
+      // Try multiple possible locations for transcript text and speaker
+      const transcriptText =
+        transcript ||
+        data?.transcript?.text ||
+        data?.transcript ||
+        data?.text ||
+        data?.words?.map(w => w.word).join(' '); // For Deepgram word-level results
+
+      const transcriptSpeaker =
+        speaker ||
+        data?.speaker?.name ||
+        data?.speaker ||
+        data?.channel ||
+        'Unknown';
+
+      console.log(`📝 Extracted transcript: "${transcriptText}" from speaker: ${transcriptSpeaker}`);
 
       if (transcriptText) {
         // Only store complete transcripts (not partials) to avoid duplicates
@@ -107,6 +124,9 @@ export default async function handler(req, res) {
             metadata,
             timestamp: new Date().toISOString(),
           });
+          console.log(`✅ Stored transcript for meeting ${actualMeetingId}`);
+        } else {
+          console.log(`⏭️ Skipping partial transcript (waiting for complete)`);
         }
 
         // Get recent transcripts for context (last 5 segments)
