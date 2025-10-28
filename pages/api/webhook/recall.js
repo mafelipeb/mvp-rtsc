@@ -92,10 +92,13 @@ export default async function handler(req, res) {
     console.log(`✅ Received webhook for meeting ${actualMeetingId}, event: ${eventName}`);
 
     // Handle real-time transcript events (streaming with low latency)
-    // transcript = Real-time transcripts from realtime_endpoints
+    // transcript.output = Real-time transcript output from Deepgram streaming
+    // transcript.output_complete = Complete transcript segments from Deepgram
     // transcript.partial = Real-time partial transcripts (very low latency)
     // transcript.complete = Complete transcript segments (finalized)
-    if (eventName === 'transcript' || eventName === 'transcript.partial' || eventName === 'transcript.complete' || eventName === 'transcript.segment') {
+    if (eventName === 'transcript.output' || eventName === 'transcript.output_complete' ||
+        eventName === 'transcript' || eventName === 'transcript.partial' ||
+        eventName === 'transcript.complete' || eventName === 'transcript.segment') {
       console.log(`📝 Processing transcript event: ${eventName}`);
       console.log(`📝 Raw data object:`, JSON.stringify(data, null, 2));
 
@@ -117,8 +120,10 @@ export default async function handler(req, res) {
       console.log(`📝 Extracted transcript: "${transcriptText}" from speaker: ${transcriptSpeaker}`);
 
       if (transcriptText) {
-        // Store complete transcripts and realtime endpoint transcripts (not partials) to avoid duplicates
-        if (eventName === 'transcript' || eventName === 'transcript.complete' || eventName === 'transcript.segment') {
+        // Store complete transcripts (not partials) to avoid duplicates
+        // Store: transcript.output_complete, transcript.complete, transcript.segment, transcript.output, transcript
+        if (eventName === 'transcript.output_complete' || eventName === 'transcript.output' ||
+            eventName === 'transcript' || eventName === 'transcript.complete' || eventName === 'transcript.segment') {
           storage.addTranscript(actualMeetingId, {
             text: transcriptText,
             speaker: transcriptSpeaker,
