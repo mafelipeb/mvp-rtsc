@@ -91,14 +91,10 @@ export default async function handler(req, res) {
     const eventName = type || eventType || event;
     console.log(`✅ Received webhook for meeting ${actualMeetingId}, event: ${eventName}`);
 
-    // Handle real-time transcript events (streaming with low latency)
-    // transcript.output = Real-time transcript output from Deepgram streaming
-    // transcript.output_complete = Complete transcript segments from Deepgram
-    // transcript.partial = Real-time partial transcripts (very low latency)
-    // transcript.complete = Complete transcript segments (finalized)
-    if (eventName === 'transcript.output' || eventName === 'transcript.output_complete' ||
-        eventName === 'transcript' || eventName === 'transcript.partial' ||
-        eventName === 'transcript.complete' || eventName === 'transcript.segment') {
+    // Handle real-time transcript events from realtime_endpoints
+    // transcript.data = Real-time transcript data from streaming provider
+    // transcript.partial_data = Partial/interim transcript data (lower latency)
+    if (eventName === 'transcript.data' || eventName === 'transcript.partial_data') {
       console.log(`📝 Processing transcript event: ${eventName}`);
       console.log(`📝 Raw data object:`, JSON.stringify(data, null, 2));
 
@@ -120,10 +116,8 @@ export default async function handler(req, res) {
       console.log(`📝 Extracted transcript: "${transcriptText}" from speaker: ${transcriptSpeaker}`);
 
       if (transcriptText) {
-        // Store complete transcripts (not partials) to avoid duplicates
-        // Store: transcript.output_complete, transcript.complete, transcript.segment, transcript.output, transcript
-        if (eventName === 'transcript.output_complete' || eventName === 'transcript.output' ||
-            eventName === 'transcript' || eventName === 'transcript.complete' || eventName === 'transcript.segment') {
+        // Store transcript.data (complete) but skip transcript.partial_data to avoid duplicates
+        if (eventName === 'transcript.data') {
           storage.addTranscript(actualMeetingId, {
             text: transcriptText,
             speaker: transcriptSpeaker,
@@ -131,8 +125,8 @@ export default async function handler(req, res) {
             timestamp: new Date().toISOString(),
           });
           console.log(`✅ Stored transcript for meeting ${actualMeetingId}`);
-        } else {
-          console.log(`⏭️ Skipping partial transcript (waiting for complete)`);
+        } else if (eventName === 'transcript.partial_data') {
+          console.log(`⏭️ Skipping partial transcript (waiting for complete transcript.data)`);
         }
 
         // Get recent transcripts for context (last 5 segments)

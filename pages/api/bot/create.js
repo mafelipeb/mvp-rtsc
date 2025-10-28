@@ -52,7 +52,15 @@ export default async function handler(req, res) {
               interim_results: true     // Enable real-time interim results
             }
           }
-        }
+        },
+        // Real-time endpoints to receive transcript data during the meeting
+        realtime_endpoints: [
+          {
+            type: 'webhook',
+            url: webhookUrl,
+            events: ['transcript.data', 'transcript.partial_data']
+          }
+        ]
       },
 
       // Webhook configuration
