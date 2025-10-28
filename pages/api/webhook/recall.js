@@ -102,36 +102,31 @@ export default async function handler(req, res) {
       console.log(`📝 Processing transcript event: ${eventName}`);
       console.log(`📝 Raw data object:`, JSON.stringify(data, null, 2));
 
-      // Try multiple possible locations for transcript text and speaker
-      const transcriptText =
-        transcript ||
-        data?.transcript?.text ||
-        data?.transcript ||
-        data?.text ||
-        data?.words?.map(w => w.word).join(' '); // For Deepgram word-level results
+      // Extract transcript text from Deepgram word-level results
+      // Data structure: data.data.words = [{text: "word", ...}, ...]
+      const words = data?.data?.words || [];
+      const transcriptText = words.map(w => w.text).join(' ');
 
-      const transcriptSpeaker =
-        speaker ||
-        data?.speaker?.name ||
-        data?.speaker ||
-        data?.channel ||
-        'Unknown';
+      // Extract speaker name from participant data
+      const transcriptSpeaker = data?.data?.participant?.name || 'Unknown';
 
       console.log(`📝 Extracted transcript: "${transcriptText}" from speaker: ${transcriptSpeaker}`);
 
-      if (transcriptText) {
-        // Store transcript.data (complete) but skip transcript.partial_data to avoid duplicates
-        if (eventName === 'transcript.data') {
-          storage.addTranscript(actualMeetingId, {
-            text: transcriptText,
-            speaker: transcriptSpeaker,
-            metadata,
-            timestamp: new Date().toISOString(),
-          });
-          console.log(`✅ Stored transcript for meeting ${actualMeetingId}`);
-        } else if (eventName === 'transcript.partial_data') {
-          console.log(`⏭️ Skipping partial transcript (waiting for complete transcript.data)`);
-        }
+      if (transcriptText && transcriptText.trim()) {
+        // Store both transcript.data and transcript.partial_data
+        // transcript.partial_data contains real-time word-level data from Deepgram
+        storage.addTranscript(actualMeetingId, {
+          text: transcriptText,
+          speaker: transcriptSpeaker,
+          metadata: {
+            ...metadata,
+            event_type: eventName,
+            word_count: words.length,
+            is_partial: eventName === 'transcript.partial_data'
+          },
+          timestamp: new Date().toISOString(),
+        });
+        console.log(`✅ Stored transcript segment (${words.length} words) for meeting ${actualMeetingId}`);
 
         // Get recent transcripts for context (last 5 segments)
         const recentTranscripts = storage.getRecentTranscripts(actualMeetingId, 5);
@@ -156,6 +151,8 @@ export default async function handler(req, res) {
             console.error('Error in coaching generation:', error);
           });
         }
+      } else {
+        console.log(`⏭️ Skipping empty transcript`);
       }
     }
 
