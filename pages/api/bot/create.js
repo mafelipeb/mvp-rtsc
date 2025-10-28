@@ -110,17 +110,20 @@ export default async function handler(req, res) {
 
     console.log('Bot created successfully:', responseData.id);
 
+    // Extract bot ID - handle both string and object formats
+    const botId = typeof responseData.id === 'object' ? responseData.id.id : responseData.id;
+
     // Return success with bot details
     return res.status(200).json({
       success: true,
       message: 'Bot created successfully',
       data: {
-        bot_id: responseData.id,
-        meeting_id: responseData.id, // Use bot ID as meeting ID
+        bot_id: botId,
+        meeting_id: botId, // Use bot ID as meeting ID
         status: responseData.status_changes?.[0]?.code || 'created',
         join_url: responseData.join_at,
         webhook_url: webhookUrl,
-        dashboard_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/${responseData.id}`
+        dashboard_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/${botId}`
       },
       raw_response: responseData
     });
