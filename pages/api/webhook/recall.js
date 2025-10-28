@@ -161,6 +161,55 @@ export default async function handler(req, res) {
       }
     }
 
+    // Handle transcript.done event - fetch full transcript from Recall.ai
+    if (eventName === 'transcript.done') {
+      console.log(`📄 Transcript completed for meeting ${actualMeetingId}`);
+
+      const transcriptId = data?.transcript?.id;
+      if (transcriptId) {
+        console.log(`📥 Fetching transcript ${transcriptId} from Recall.ai API`);
+
+        try {
+          const transcriptResponse = await fetch(
+            `https://us-west-2.recall.ai/api/v1/bot/${actualMeetingId}/transcript`,
+            {
+              headers: {
+                'Authorization': `Token ${process.env.RECALL_API_KEY}`,
+                'Accept': 'application/json'
+              }
+            }
+          );
+
+          if (transcriptResponse.ok) {
+            const transcriptData = await transcriptResponse.json();
+            console.log(`📝 Received transcript data:`, JSON.stringify(transcriptData, null, 2));
+
+            // Parse transcript segments and store them
+            if (transcriptData.words || transcriptData.segments || transcriptData.transcript) {
+              const segments = transcriptData.segments || [];
+
+              segments.forEach((segment, index) => {
+                if (segment.text) {
+                  storage.addTranscript(actualMeetingId, {
+                    text: segment.text,
+                    speaker: segment.speaker || `Speaker ${segment.speaker_id || index + 1}`,
+                    metadata: { ...segment, source: 'transcript.done' },
+                    timestamp: new Date(segment.start * 1000).toISOString(),
+                  });
+                }
+              });
+
+              console.log(`✅ Stored ${segments.length} transcript segments`);
+            }
+          } else {
+            console.error(`❌ Failed to fetch transcript: ${transcriptResponse.status}`);
+          }
+        } catch (error) {
+          console.error(`❌ Error fetching transcript:`, error);
+        }
+      }
+    }
+
     // Handle bot status events directly
     // The event type IS the status (e.g., "bot.in_call_recording")
     console.log(`Event for ${actualMeetingId}: ${eventName}`);

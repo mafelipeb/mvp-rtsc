@@ -60,10 +60,11 @@ export default async function handler(req, res) {
         url: webhookUrl,
         events: [
           'bot.status_change',
-          'transcript.output',           // Real-time transcript output from Deepgram
-          'transcript.output_complete',  // Complete transcript segments
-          'transcript.partial',          // Partial transcripts
-          'transcript.complete',         // Complete transcripts
+          'bot.in_call_recording',
+          'bot.done',
+          'transcript.done',             // Fired when full transcript is ready
+          'transcript.output',           // Real-time transcript output from Deepgram (if available)
+          'transcript.output_complete',  // Complete transcript segments from Deepgram (if available)
           'call.ended'
         ]
       },
