@@ -92,9 +92,10 @@ export default async function handler(req, res) {
     console.log(`✅ Received webhook for meeting ${actualMeetingId}, event: ${eventName}`);
 
     // Handle real-time transcript events (streaming with low latency)
+    // transcript = Real-time transcripts from realtime_endpoints
     // transcript.partial = Real-time partial transcripts (very low latency)
     // transcript.complete = Complete transcript segments (finalized)
-    if (eventName === 'transcript.partial' || eventName === 'transcript.complete' || eventName === 'transcript.segment') {
+    if (eventName === 'transcript' || eventName === 'transcript.partial' || eventName === 'transcript.complete' || eventName === 'transcript.segment') {
       console.log(`📝 Processing transcript event: ${eventName}`);
       console.log(`📝 Raw data object:`, JSON.stringify(data, null, 2));
 
@@ -116,8 +117,8 @@ export default async function handler(req, res) {
       console.log(`📝 Extracted transcript: "${transcriptText}" from speaker: ${transcriptSpeaker}`);
 
       if (transcriptText) {
-        // Only store complete transcripts (not partials) to avoid duplicates
-        if (eventName === 'transcript.complete' || eventName === 'transcript.segment') {
+        // Store complete transcripts and realtime endpoint transcripts (not partials) to avoid duplicates
+        if (eventName === 'transcript' || eventName === 'transcript.complete' || eventName === 'transcript.segment') {
           storage.addTranscript(actualMeetingId, {
             text: transcriptText,
             speaker: transcriptSpeaker,
