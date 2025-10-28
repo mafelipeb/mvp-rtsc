@@ -27,27 +27,31 @@ export default async function handler(req, res) {
     // Get the raw body for signature verification
     const rawBody = await getRawBody(req);
 
-    // Verify webhook signature using Svix if secret is configured
+    // Verify webhook signature using Svix if secret is configured AND Svix headers are present
     let payload;
-    if (process.env.RECALL_WEBHOOK_SECRET) {
+    const hasSvixHeaders = req.headers['svix-id'] && req.headers['svix-timestamp'] && req.headers['svix-signature'];
+
+    if (process.env.RECALL_WEBHOOK_SECRET && hasSvixHeaders) {
+      // Verify using Svix (for regular webhooks from Recall.ai)
       try {
         const wh = new Webhook(process.env.RECALL_WEBHOOK_SECRET);
 
-        // Verify using Svix headers
         payload = wh.verify(rawBody, {
           'svix-id': req.headers['svix-id'],
           'svix-timestamp': req.headers['svix-timestamp'],
           'svix-signature': req.headers['svix-signature'],
         });
 
-        console.log('✅ Webhook signature verified successfully');
+        console.log('✅ Webhook signature verified successfully (Svix)');
       } catch (err) {
         console.error('❌ Invalid webhook signature:', err.message);
         return res.status(401).json({ error: 'Invalid signature' });
       }
     } else {
-      // If no secret is configured, just parse the body (for development)
+      // No Svix headers - this is likely a realtime_endpoints webhook
+      // These webhooks don't use Svix signatures
       payload = JSON.parse(rawBody);
+      console.log('ℹ️ Webhook received without Svix signature (realtime_endpoints)');
     }
 
     // Log the full payload to understand Recall.ai's webhook structure
