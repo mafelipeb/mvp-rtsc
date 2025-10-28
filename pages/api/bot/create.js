@@ -52,15 +52,7 @@ export default async function handler(req, res) {
               interim_results: true     // Enable real-time interim results
             }
           }
-        },
-        // Real-time endpoints to receive transcripts as they're generated
-        realtime_endpoints: [
-          {
-            type: 'webhook',
-            url: webhookUrl,
-            events: ['transcript']      // Stream transcript events in real-time
-          }
-        ]
+        }
       },
 
       // Webhook configuration
@@ -68,8 +60,10 @@ export default async function handler(req, res) {
         url: webhookUrl,
         events: [
           'bot.status_change',
-          'transcript.partial',  // Real-time partial transcripts
-          'transcript.complete', // Complete transcript segments
+          'transcript.output',           // Real-time transcript output from Deepgram
+          'transcript.output_complete',  // Complete transcript segments
+          'transcript.partial',          // Partial transcripts
+          'transcript.complete',         // Complete transcripts
           'call.ended'
         ]
       },
