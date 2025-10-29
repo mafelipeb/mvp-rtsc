@@ -54,25 +54,15 @@ The coaching-live-sales-calls skill will select optimal methodology:
 </dm_engagement_scoring>`;
 
 // Default user prompt template (contains the actual data to analyze)
-const DEFAULT_USER_PROMPT = `Analyze this real-time sales conversation segment and provide immediate coaching.
-
-TRANSCRIPT:
+const DEFAULT_USER_PROMPT = `<transcript>
 {{TRANSCRIPT}}
+</transcript>
 
-CONTEXT:
-- Meeting ID: {{MEETING_ID}}
-- Participants: {{PARTICIPANTS}}
-- Call Duration: {{DURATION}}
+<context>
+meeting_id={{MEETING_ID}}|participants={{PARTICIPANTS}}|duration={{DURATION}}m
+</context>
 
-Based on the transcript above:
-1. Identify the current sales phase and methodology being used
-2. Provide a specific 6-12 word script suggestion for the next thing the sales rep should say
-3. Give actionable insight with clear rationale
-4. Flag any risks or red flags in the conversation
-5. Score the key sales metrics (discovery depth, pain quantification, decision-maker engagement, stakeholder count, alignment level)
-6. Recommend the immediate next action
-
-Return your analysis as a single JSON object with all required fields.`;
+Analyze with coaching-live-sales-calls skill. Return coaching JSON.`;
 
 /**
  * API endpoint to manage coaching prompt settings
