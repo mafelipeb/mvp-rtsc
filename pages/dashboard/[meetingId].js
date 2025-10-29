@@ -253,7 +253,12 @@ function CoachingCard({ coaching }) {
             <div className="flex-1">
               <h4 className="font-semibold text-blue-900 text-sm mb-1">Insight</h4>
               <p className="text-blue-800 text-sm mb-2">{coaching.tip?.insight}</p>
-              <p className="text-blue-700 text-xs italic">Why: {coaching.tip?.rationale}</p>
+              <p className="text-blue-700 text-xs italic mb-2">Why: {coaching.tip?.rationale}</p>
+              {coaching.tip?.language && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-200 text-blue-800">
+                  {coaching.tip.language}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -266,7 +271,12 @@ function CoachingCard({ coaching }) {
               <div className="flex-1">
                 <h4 className="font-semibold text-red-900 text-sm mb-1">Risk Alert</h4>
                 <p className="text-red-800 text-sm mb-1">{coaching.risk.warning}</p>
-                <p className="text-red-700 text-xs">⚡ {coaching.risk.consequence}</p>
+                <p className="text-red-700 text-xs mb-2">⚡ {coaching.risk.consequence}</p>
+                {coaching.risk?.language && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-200 text-red-800">
+                    {coaching.risk.language}
+                  </span>
+                )}
               </div>
             </div>
           </div>
