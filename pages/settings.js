@@ -3,24 +3,26 @@ import Head from 'next/head';
 import Link from 'next/link';
 
 export default function Settings() {
-  const [prompt, setPrompt] = useState('');
+  const [systemPrompt, setSystemPrompt] = useState('');
+  const [userPrompt, setUserPrompt] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  // Load current prompt on mount
+  // Load current prompts on mount
   useEffect(() => {
-    fetchPrompt();
+    fetchPrompts();
   }, []);
 
-  const fetchPrompt = async () => {
+  const fetchPrompts = async () => {
     try {
       const response = await fetch('/api/settings/prompt');
       const data = await response.json();
-      setPrompt(data.prompt || '');
+      setSystemPrompt(data.systemPrompt || '');
+      setUserPrompt(data.userPrompt || '');
     } catch (error) {
-      console.error('Error fetching prompt:', error);
-      setMessage({ type: 'error', text: 'Failed to load prompt' });
+      console.error('Error fetching prompts:', error);
+      setMessage({ type: 'error', text: 'Failed to load prompts' });
     } finally {
       setLoading(false);
     }
@@ -34,24 +36,25 @@ export default function Settings() {
       const response = await fetch('/api/settings/prompt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ systemPrompt, userPrompt }),
       });
 
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Prompt saved successfully!' });
+        setMessage({ type: 'success', text: 'Prompts saved successfully!' });
       } else {
-        setMessage({ type: 'error', text: 'Failed to save prompt' });
+        const data = await response.json();
+        setMessage({ type: 'error', text: data.message || 'Failed to save prompts' });
       }
     } catch (error) {
-      console.error('Error saving prompt:', error);
-      setMessage({ type: 'error', text: 'Failed to save prompt' });
+      console.error('Error saving prompts:', error);
+      setMessage({ type: 'error', text: 'Failed to save prompts' });
     } finally {
       setSaving(false);
     }
   };
 
   const handleReset = async () => {
-    if (!confirm('Reset to default prompt? This cannot be undone.')) return;
+    if (!confirm('Reset to default prompts? This cannot be undone.')) return;
 
     setSaving(true);
     try {
@@ -61,12 +64,13 @@ export default function Settings() {
 
       if (response.ok) {
         const data = await response.json();
-        setPrompt(data.prompt);
-        setMessage({ type: 'success', text: 'Prompt reset to default' });
+        setSystemPrompt(data.systemPrompt);
+        setUserPrompt(data.userPrompt);
+        setMessage({ type: 'success', text: 'Prompts reset to default' });
       }
     } catch (error) {
-      console.error('Error resetting prompt:', error);
-      setMessage({ type: 'error', text: 'Failed to reset prompt' });
+      console.error('Error resetting prompts:', error);
+      setMessage({ type: 'error', text: 'Failed to reset prompts' });
     } finally {
       setSaving(false);
     }
@@ -86,7 +90,7 @@ export default function Settings() {
               ← Back to Home
             </Link>
             <h1 className="text-4xl font-bold text-gray-900">Settings</h1>
-            <p className="text-gray-600 mt-2">Configure your AI coaching prompt</p>
+            <p className="text-gray-600 mt-2">Configure your AI coaching prompts</p>
           </div>
 
           {/* Message */}
@@ -100,66 +104,87 @@ export default function Settings() {
             </div>
           )}
 
-          {/* Prompt Editor */}
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-                AI Coaching Prompt
-              </h2>
-              <p className="text-sm text-gray-600">
-                Customize the prompt sent to Claude for generating sales coaching recommendations.
-                Use <code className="bg-gray-100 px-1 py-0.5 rounded">{'{{TRANSCRIPT}}'}</code>,{' '}
-                <code className="bg-gray-100 px-1 py-0.5 rounded">{'{{MEETING_ID}}'}</code>,{' '}
-                <code className="bg-gray-100 px-1 py-0.5 rounded">{'{{PARTICIPANTS}}'}</code>, and{' '}
-                <code className="bg-gray-100 px-1 py-0.5 rounded">{'{{DURATION}}'}</code> as placeholders.
-              </p>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
             </div>
-
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-              </div>
-            ) : (
-              <>
-                <textarea
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  className="w-full h-96 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 bg-white font-mono text-sm resize-y"
-                  placeholder="Enter your custom prompt here..."
-                />
-
-                <div className="mt-6 flex gap-4">
-                  <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:cursor-not-allowed"
-                  >
-                    {saving ? 'Saving...' : 'Save Prompt'}
-                  </button>
-
-                  <button
-                    onClick={handleReset}
-                    disabled={saving}
-                    className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:cursor-not-allowed"
-                  >
-                    Reset to Default
-                  </button>
+          ) : (
+            <>
+              {/* System Prompt Editor */}
+              <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-semibold text-gray-800 mb-2">
+                    System Prompt
+                  </h2>
+                  <p className="text-sm text-gray-600">
+                    Defines Claude's role, personality, and output format. This sets the context for how Claude should behave.
+                  </p>
                 </div>
-              </>
-            )}
-          </div>
+
+                <textarea
+                  value={systemPrompt}
+                  onChange={(e) => setSystemPrompt(e.target.value)}
+                  className="w-full h-64 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 bg-white font-mono text-sm resize-y"
+                  placeholder="Enter system prompt here..."
+                />
+              </div>
+
+              {/* User Prompt Editor */}
+              <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-semibold text-gray-800 mb-2">
+                    User Prompt Template
+                  </h2>
+                  <p className="text-sm text-gray-600">
+                    Contains the actual data to analyze. Use placeholders:{' '}
+                    <code className="bg-gray-100 px-1 py-0.5 rounded">{'{{TRANSCRIPT}}'}</code>,{' '}
+                    <code className="bg-gray-100 px-1 py-0.5 rounded">{'{{MEETING_ID}}'}</code>,{' '}
+                    <code className="bg-gray-100 px-1 py-0.5 rounded">{'{{PARTICIPANTS}}'}</code>,{' '}
+                    <code className="bg-gray-100 px-1 py-0.5 rounded">{'{{DURATION}}'}</code>
+                  </p>
+                </div>
+
+                <textarea
+                  value={userPrompt}
+                  onChange={(e) => setUserPrompt(e.target.value)}
+                  className="w-full h-64 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition text-gray-900 bg-white font-mono text-sm resize-y"
+                  placeholder="Enter user prompt template here..."
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-4 mb-8">
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:cursor-not-allowed"
+                >
+                  {saving ? 'Saving...' : 'Save Prompts'}
+                </button>
+
+                <button
+                  onClick={handleReset}
+                  disabled={saving}
+                  className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:cursor-not-allowed"
+                >
+                  Reset to Default
+                </button>
+              </div>
+            </>
+          )}
 
           {/* Tips */}
-          <div className="mt-8 bg-blue-50 rounded-xl p-6 border border-blue-200">
+          <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
             <h3 className="font-semibold text-gray-800 mb-3">
-              💡 Prompt Customization Tips
+              💡 Best Practices for Prompt Engineering
             </h3>
             <ul className="list-disc list-inside space-y-2 text-sm text-gray-700">
-              <li>Use placeholders to inject dynamic data: <code className="bg-white px-1 py-0.5 rounded">{'{{TRANSCRIPT}}'}</code>, <code className="bg-white px-1 py-0.5 rounded">{'{{MEETING_ID}}'}</code>, etc.</li>
-              <li>Request structured JSON output for consistent parsing</li>
-              <li>Be specific about the coaching categories you want (questioning, active listening, etc.)</li>
-              <li>Include examples in your prompt for better results</li>
-              <li>Test your custom prompt with a sample call before using in production</li>
+              <li><strong>System Prompt:</strong> Define Claude's role, expertise, and output format. Keep it focused on "who" Claude is and "how" to respond.</li>
+              <li><strong>User Prompt:</strong> Provide the specific task and data to analyze. Use placeholders for dynamic content.</li>
+              <li><strong>Separation Benefits:</strong> Separating prompts improves Claude's understanding and response quality.</li>
+              <li><strong>Placeholders:</strong> Use <code className="bg-white px-1 py-0.5 rounded">{'{{TRANSCRIPT}}'}</code>, <code className="bg-white px-1 py-0.5 rounded">{'{{MEETING_ID}}'}</code>, <code className="bg-white px-1 py-0.5 rounded">{'{{PARTICIPANTS}}'}</code>, <code className="bg-white px-1 py-0.5 rounded">{'{{DURATION}}'}</code> in user prompt only.</li>
+              <li><strong>JSON Output:</strong> Request structured JSON in system prompt for consistent parsing.</li>
+              <li><strong>Testing:</strong> Test your custom prompts with sample calls before production use.</li>
             </ul>
           </div>
         </div>

@@ -1,17 +1,9 @@
 import storage from '@/lib/storage';
 
-// Default coaching prompt
-const DEFAULT_PROMPT = `You are an expert sales coach analyzing a real-time sales call. Based on the following transcript, provide actionable coaching recommendations.
+// Default system prompt (defines Claude's role and output format)
+const DEFAULT_SYSTEM_PROMPT = `You are an expert sales coach analyzing real-time sales calls. Your role is to provide actionable coaching recommendations based on conversation transcripts.
 
-TRANSCRIPT:
-{{TRANSCRIPT}}
-
-CONTEXT:
-- Meeting ID: {{MEETING_ID}}
-- Participants: {{PARTICIPANTS}}
-- Call Duration: {{DURATION}}
-
-Analyze the conversation and provide coaching recommendations in the following JSON format:
+Analyze conversations and provide coaching recommendations in the following JSON format:
 {
   "overallSentiment": "positive|neutral|negative",
   "talkRatio": {
@@ -44,7 +36,20 @@ Analyze the conversation and provide coaching recommendations in the following J
   ]
 }
 
-Provide only the JSON response, no additional text.`;
+Always provide only the JSON response, no additional text.`;
+
+// Default user prompt template (contains the actual data to analyze)
+const DEFAULT_USER_PROMPT = `Analyze the following sales call and provide coaching recommendations.
+
+TRANSCRIPT:
+{{TRANSCRIPT}}
+
+CONTEXT:
+- Meeting ID: {{MEETING_ID}}
+- Participants: {{PARTICIPANTS}}
+- Call Duration: {{DURATION}}
+
+Please analyze this conversation and provide your coaching recommendations in JSON format.`;
 
 /**
  * API endpoint to manage coaching prompt settings
@@ -55,43 +60,53 @@ Provide only the JSON response, no additional text.`;
 export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
-      // Get current prompt (custom or default)
-      const customPrompt = storage.getPrompt();
+      // Get current prompts (custom or default)
+      const prompts = storage.getPrompts();
       return res.status(200).json({
-        prompt: customPrompt || DEFAULT_PROMPT,
-        isDefault: !customPrompt
+        systemPrompt: prompts.systemPrompt || DEFAULT_SYSTEM_PROMPT,
+        userPrompt: prompts.userPrompt || DEFAULT_USER_PROMPT,
+        isDefault: !prompts.systemPrompt && !prompts.userPrompt
       });
     }
 
     if (req.method === 'POST') {
-      // Update prompt
-      const { prompt } = req.body;
+      // Update prompts
+      const { systemPrompt, userPrompt } = req.body;
 
-      if (!prompt || typeof prompt !== 'string') {
+      if (!systemPrompt || typeof systemPrompt !== 'string') {
         return res.status(400).json({
-          error: 'Invalid prompt',
-          message: 'Prompt must be a non-empty string'
+          error: 'Invalid system prompt',
+          message: 'System prompt must be a non-empty string'
         });
       }
 
-      // Save custom prompt
-      storage.setPrompt(prompt);
+      if (!userPrompt || typeof userPrompt !== 'string') {
+        return res.status(400).json({
+          error: 'Invalid user prompt',
+          message: 'User prompt must be a non-empty string'
+        });
+      }
+
+      // Save custom prompts
+      storage.setPrompts({ systemPrompt, userPrompt });
 
       return res.status(200).json({
         success: true,
-        message: 'Prompt updated successfully',
-        prompt: prompt
+        message: 'Prompts updated successfully',
+        systemPrompt,
+        userPrompt
       });
     }
 
     if (req.method === 'DELETE') {
-      // Reset to default prompt
-      storage.setPrompt(null);
+      // Reset to default prompts
+      storage.setPrompts({ systemPrompt: null, userPrompt: null });
 
       return res.status(200).json({
         success: true,
-        message: 'Prompt reset to default',
-        prompt: DEFAULT_PROMPT
+        message: 'Prompts reset to default',
+        systemPrompt: DEFAULT_SYSTEM_PROMPT,
+        userPrompt: DEFAULT_USER_PROMPT
       });
     }
 
@@ -105,5 +120,5 @@ export default async function handler(req, res) {
   }
 }
 
-// Export default prompt for use in other modules
-export { DEFAULT_PROMPT };
+// Export default prompts for use in other modules
+export { DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT };
