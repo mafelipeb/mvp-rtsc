@@ -130,26 +130,36 @@ export default async function handler(req, res) {
 
         // Get recent transcripts for context (last 5 segments)
         const recentTranscripts = storage.getRecentTranscripts(actualMeetingId, 5);
+        console.log(`📊 Recent transcripts count: ${recentTranscripts.length}`);
 
         // Generate coaching if we have enough context (at least 3 segments)
         if (recentTranscripts.length >= 3) {
           const call = storage.getCall(actualMeetingId);
 
+          // Convert Set to Array for participants
+          const participantsList = call?.participants ? Array.from(call.participants) : [];
+
+          console.log(`🎯 Triggering coaching generation for meeting ${actualMeetingId}`);
+          console.log(`👥 Participants: ${participantsList.join(', ')}`);
+
           // Generate coaching asynchronously
           generateSalesCoaching(recentTranscripts, {
             meetingId: actualMeetingId,
-            participants: call?.participants || [],
+            participants: participantsList,
             duration: metadata?.duration,
           }).then((coaching) => {
             if (coaching.success) {
               storage.addCoaching(actualMeetingId, coaching.data);
-              console.log(`Generated coaching for meeting ${actualMeetingId}`);
+              console.log(`✅ Successfully generated and stored coaching for meeting ${actualMeetingId}`);
             } else {
-              console.error(`Failed to generate coaching: ${coaching.error}`);
+              console.error(`❌ Failed to generate coaching: ${coaching.error}`);
             }
           }).catch((error) => {
-            console.error('Error in coaching generation:', error);
+            console.error('❌ Error in coaching generation:', error);
+            console.error('Error stack:', error.stack);
           });
+        } else {
+          console.log(`⏭️ Skipping coaching generation - only ${recentTranscripts.length} segments (need 3+)`);
         }
       } else {
         console.log(`⏭️ Skipping empty transcript`);
